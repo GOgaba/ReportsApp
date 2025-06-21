@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1073555382713",
+    "project_id": "reportsapp-d7c47",
+    "storage_bucket": "reportsapp-d7c47.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1073555382713:android:0c38fee739917d9a939668",
+        "android_client_info": {
+          "package_name": "android.bignerdranch.reportsapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCv53A8gzo9n1DOd989GUEC7FiLJs4MFDc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
