@@ -4,11 +4,14 @@ package android.bignerdranch.reportsapp.map
 
 import android.Manifest
 import android.bignerdranch.reportsapp.R
+import android.bignerdranch.reportsapp.map.utils.createMarkerBitmap
 import android.bignerdranch.reportsapp.reports.data.Report
 import android.bignerdranch.reportsapp.ui.components.dialogs.ReportInfoDialog
 import android.content.pm.PackageManager
+import android.graphics.PointF
 import android.os.Looper
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,7 +27,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.get
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -36,11 +41,16 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.google.firebase.crashlytics.buildtools.reloc.org.apache.commons.cli.Options
 import com.google.type.LatLng
 import com.yandex.mapkit.MapKit
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.geometry.Point
+import com.yandex.mapkit.map.CameraListener
 import com.yandex.mapkit.map.CameraPosition
+import com.yandex.mapkit.map.CameraUpdateReason
+import com.yandex.mapkit.map.IconStyle
+import com.yandex.mapkit.map.Map
 import com.yandex.mapkit.mapview.MapView
 import com.yandex.runtime.image.ImageProvider
 
@@ -54,6 +64,12 @@ fun YandexMapView(location: Point?,
     val mapView = remember { MapView(context) }
     var initializationError by remember { mutableStateOf<String?>(null) }
     var selectedReport by remember { mutableStateOf<Report?>(null) }
+    val isInitialized = remember { mutableStateOf(false) } // Флаг инициализации
+
+    // Создаем Bitmap один раз (для оптимизации)
+    val markerBitmap = remember {
+        createMarkerBitmap()
+    }
 
         // Инициализация MapKit
     DisposableEffect(Unit) {
@@ -126,19 +142,22 @@ fun YandexMapView(location: Point?,
         update = { view ->
             try {
                 view.mapWindow.map.apply {
-                    move(
-                        CameraPosition(
-                            Point(55.751574, 37.573856), // Москва
-                            11.0f,  // Зум
-                            0.0f,   // Азимут
-                            0.0f    // Наклон
+                    // Инициализация только при первом запуске
+                    if (!isInitialized.value) {
+                        move(
+                            CameraPosition(
+                                Point(55.751574, 37.573856), // Москва
+                                11.0f,
+                                0.0f,
+                                0.0f
+                            )
                         )
-                    )
+                        isInitialized.value = true
+                    }
                     if (isAdmin) {
                         reports.forEach { report ->
                             report.location?.let { safeLocation -> // Пропускаем отчеты с null-локацией
                                 val marker = mapView.map.mapObjects.addPlacemark(safeLocation).apply {
-                                    setIcon(ImageProvider.fromResource(mapView.context, R.drawable.ymk_default_point))
                                     addTapListener { _ ->
                                         Log.d("REPORT_SELECT", "отчёт нажат")
                                         selectedReport = report
@@ -155,12 +174,4 @@ fun YandexMapView(location: Point?,
             }
         }
     )
-
-    // Показываем диалог, если selectedReport != null
-    selectedReport?.let { report ->
-        ReportInfoDialog(
-            report = report,
-            onDismiss = { selectedReport = null }
-        )
-    }
 }

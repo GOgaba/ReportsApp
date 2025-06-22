@@ -4,6 +4,7 @@ import android.Manifest
 import android.bignerdranch.reportsapp.auth.domain.AuthService
 import android.bignerdranch.reportsapp.auth.domain.UserManager
 import android.bignerdranch.reportsapp.map.YandexMapView
+import android.bignerdranch.reportsapp.map.utils.MapWithMarkers
 import android.bignerdranch.reportsapp.reports.data.Report
 import android.bignerdranch.reportsapp.reports.presentation.reportscreen.CreateReportScreen
 import android.bignerdranch.reportsapp.reports.presentation.reportscreen.ReportViewModel
@@ -208,7 +209,7 @@ class MainActivity : ComponentActivity() {
                             else -> {
                                 Log.d("LOCATION", "current location ${currentLocation?.latitude}, ${currentLocation?.longitude}")
                                 Log.d("REPORTS", "${reports}")
-                                YandexMapView(currentLocation, reports?: emptyList(), userManager.isAdmin)
+                                MapWithMarkers(currentLocation, reports, userManager.isAdmin)
                             }
                         }
                     }

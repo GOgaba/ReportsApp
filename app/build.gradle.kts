@@ -92,6 +92,7 @@ dependencies {
 
     // Для работы с файлами и MIME-типами
     implementation(libs.commons.io)
+    implementation(libs.firebase.crashlytics.buildtools)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
