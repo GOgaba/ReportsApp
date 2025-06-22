@@ -6,6 +6,7 @@ import android.bignerdranch.reportsapp.map.YandexMapView
 import android.bignerdranch.reportsapp.reports.data.Report
 import android.bignerdranch.reportsapp.ui.components.dialogs.ReportInfoDialog
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
@@ -20,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -176,13 +178,19 @@ fun DynamicMarker(
             modifier = Modifier
                 .offset { IntOffset(screenPosition.x.toInt(), screenPosition.y.toInt()) }
                 .size(48.dp)
-                .clickable(onClick = onClick)
+                .clickable(
+                    onClick = onClick,
+                    indication = null,  // Отключаем визуальную обратную связь
+                    interactionSource = remember { MutableInteractionSource() }
+                )
         ) {
             Icon(
                 painter = painterResource(R.drawable.ymk_default_point),
                 contentDescription = "Marker",
                 tint = Color.Red,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier
+                    .size(24.dp)
+                    .align(Alignment.Center) // Выравниваем по центру Box
             )
         }
     }
