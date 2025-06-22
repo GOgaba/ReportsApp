@@ -5,6 +5,7 @@ import android.bignerdranch.reportsapp.R
 import android.bignerdranch.reportsapp.reports.data.Report
 import android.bignerdranch.reportsapp.reports.presentation.components.FullScreenImageDialog
 import android.bignerdranch.reportsapp.storage.S3Config
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -23,14 +24,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import java.text.SimpleDateFormat
 import java.util.Date
 
 
 private fun getPublicFileUrl(fileKey: String): String {
+    Log.d("IMAGE_URL", "URL: ${"https://${S3Config.BUCKET_NAME}.hb.vkcs.cloud/$fileKey"}")
     return "https://${S3Config.BUCKET_NAME}.hb.vkcs.cloud/$fileKey"
 }
 
@@ -60,12 +64,20 @@ fun ReportInfoDialog(
 
                     LazyRow {
                         items(report.mediaUrls) { fileKey ->
+                            Log.d("IMAGE_URL", "$fileKey")
                             val imageUrl = remember(fileKey) {
                                 getPublicFileUrl(fileKey) // Преобразуем fileKey в полный URL
                             }
 
                             AsyncImage(
-                                model = imageUrl,
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(imageUrl)
+                                    .listener(
+                                        onError = { _, throwable ->
+                                            Log.e("IMAGE_LOAD", "Ошибка загрузки: ${throwable.throwable.message}")
+                                        }
+                                    )
+                                    .build(),
                                 contentDescription = null,
                                 modifier = Modifier
                                     .size(100.dp)

@@ -55,21 +55,16 @@ import com.yandex.mapkit.mapview.MapView
 import com.yandex.runtime.image.ImageProvider
 
 @Composable
-fun YandexMapView(location: Point?,
+fun YandexMapView(mapView: MapView,
+                  location: Point?,
                   reports: List<Report> = emptyList(),
                   isAdmin: Boolean = false,
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val mapView = remember { MapView(context) }
     var initializationError by remember { mutableStateOf<String?>(null) }
     var selectedReport by remember { mutableStateOf<Report?>(null) }
     val isInitialized = remember { mutableStateOf(false) } // Флаг инициализации
-
-    // Создаем Bitmap один раз (для оптимизации)
-    val markerBitmap = remember {
-        createMarkerBitmap()
-    }
 
         // Инициализация MapKit
     DisposableEffect(Unit) {

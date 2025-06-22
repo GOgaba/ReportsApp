@@ -34,6 +34,7 @@ import com.yandex.mapkit.map.CameraListener
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.CameraUpdateReason
 import com.yandex.mapkit.map.Map
+import com.yandex.mapkit.map.VisibleRegion
 import com.yandex.mapkit.mapview.MapView
 
 val LocalMapView = staticCompositionLocalOf<MapView> {
@@ -69,31 +70,27 @@ fun MapWithMarkers(
 ) {
     val context = LocalContext.current
     // Правильное создание MapView
-    val mapView = remember {
-        MapView(context).apply {
-            // Настройки карты можно добавить здесь
-        }
-    }
+    val mapView = rememberMapView() // Используем единый экземпляр
     var selectedReport by remember { mutableStateOf<Report?>(null) }
 
     Box(modifier = modifier) {
-        // Используем существующий YandexMapView как основу
+        // Передаём mapView в YandexMapView
         YandexMapView(
+            mapView = mapView, // <-- Важно!
             location = location,
-            reports = reports, // Не показываем стандартные маркеры
+            reports = if (isAdmin) emptyList() else reports, // Админам не показываем стандартные маркеры
             isAdmin = isAdmin
         )
 
         // Накладываем кастомные Compose-маркеры
         CompositionLocalProvider(LocalMapView provides mapView) {
             reports.forEach { report ->
-                Log.d("MAP_MARKERS", "позиция отч1та ${report.location?.latitude}, ${report.location?.longitude}")
                 report.location?.let { point ->
                     DynamicMarker(
                         position = point,
                         report = report,
                         isAdmin = isAdmin,
-                        onClick = {selectedReport = report}
+                        onClick = { selectedReport = report }
                     )
                 }
             }
@@ -142,59 +139,81 @@ fun DynamicMarker(
 ) {
     val mapView = LocalMapView.current
     var screenPosition by remember { mutableStateOf(Offset.Zero) }
-    var isMapReady by remember { mutableStateOf(false) }
+    var isVisible by remember { mutableStateOf(false) }
 
-    // Ждём готовности карты
-    LaunchedEffect(mapView) {
-        mapView.map.addCameraListener(object : CameraListener {
+    // Оптимизация: используем DisposableEffect для подписки/отписки
+    DisposableEffect(mapView) {
+        val listener = object : CameraListener {
             override fun onCameraPositionChanged(
                 map: Map,
                 cameraPosition: CameraPosition,
                 reason: CameraUpdateReason,
                 finished: Boolean
             ) {
-                isMapReady = true
-            }
-        })
-    }
+                val visibleRegion = map.visibleRegion
+                val isInView = isPointInVisibleRegion(position, visibleRegion)
 
-    // Обновление позиции при изменении камеры
-    LaunchedEffect(position, isMapReady, mapView.map.cameraPosition) {
-        if (isMapReady) {
-            val screenPoint = try {
-                mapView.mapWindow.worldToScreen(position) ?: return@LaunchedEffect
-            } catch (e: Exception) {
-                Log.e("MAP_MARKERS", "Coordinate conversion error", e)
-                return@LaunchedEffect
-            }
+                if (isInView) {
+                    val screenPoint = mapView.mapWindow.worldToScreen(position) ?: return
+                    screenPosition = Offset(screenPoint.x.toFloat(), screenPoint.y.toFloat())
+                }
 
-            screenPosition = Offset(
-                x = screenPoint.x.toFloat(),
-                y = screenPoint.y.toFloat()
-            ).also {
-                Log.d("MAP_MARKERS", "Converted: $position → $it")
+                isVisible = isInView // Обновляем видимость
             }
+        }
+
+        // Подписываемся на изменения камеры
+        mapView.map.addCameraListener(listener)
+
+        // Удаляем listener при выходе из композиции
+        onDispose {
+            mapView.map.removeCameraListener(listener)
         }
     }
 
-    Box(
-        modifier = Modifier
-            .offset {
-                IntOffset(
-                    (screenPosition.x.toInt()),
-                    (screenPosition.y.toInt())
-                )
-            }
-            .size(48.dp)
-            .clickable(onClick = onClick)
-    ) {
-        Icon(
-            painter = painterResource(
-                R.drawable.ymk_default_point
-            ),
-            contentDescription = "Marker",
-            tint = Color.Red,
-            modifier = Modifier.size(24.dp)
-        )
+    if (isVisible) {
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(screenPosition.x.toInt(), screenPosition.y.toInt()) }
+                .size(48.dp)
+                .clickable(onClick = onClick)
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ymk_default_point),
+                contentDescription = "Marker",
+                tint = Color.Red,
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
+}
+
+fun isPointInVisibleRegion(point: Point, visibleRegion: VisibleRegion): Boolean {
+    val minLat = minOf(
+        visibleRegion.topLeft.latitude,
+        visibleRegion.topRight.latitude,
+        visibleRegion.bottomLeft.latitude,
+        visibleRegion.bottomRight.latitude
+    )
+    val maxLat = maxOf(
+        visibleRegion.topLeft.latitude,
+        visibleRegion.topRight.latitude,
+        visibleRegion.bottomLeft.latitude,
+        visibleRegion.bottomRight.latitude
+    )
+    val minLon = minOf(
+        visibleRegion.topLeft.longitude,
+        visibleRegion.topRight.longitude,
+        visibleRegion.bottomLeft.longitude,
+        visibleRegion.bottomRight.longitude
+    )
+    val maxLon = maxOf(
+        visibleRegion.topLeft.longitude,
+        visibleRegion.topRight.longitude,
+        visibleRegion.bottomLeft.longitude,
+        visibleRegion.bottomRight.longitude
+    )
+
+    return point.latitude in minLat..maxLat &&
+            point.longitude in minLon..maxLon
 }
