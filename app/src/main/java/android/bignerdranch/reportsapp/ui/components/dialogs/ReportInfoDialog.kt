@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.bignerdranch.reportsapp.R
 import android.bignerdranch.reportsapp.reports.data.Report
 import android.bignerdranch.reportsapp.reports.presentation.components.FullScreenImageDialog
+import android.bignerdranch.reportsapp.reports.presentation.components.FullScreenVideoDialog
 import android.bignerdranch.reportsapp.storage.S3Config
 import android.util.Log
 import androidx.compose.foundation.clickable
@@ -45,6 +46,7 @@ fun ReportInfoDialog(
     onDismiss: () -> Unit
 ) {
     var expandedImageUrl by remember { mutableStateOf<String?>(null) }
+    var expandedVideoUrl by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -65,28 +67,27 @@ fun ReportInfoDialog(
                     LazyRow {
                         items(report.mediaUrls) { fileKey ->
                             Log.d("IMAGE_URL", "$fileKey")
-                            val imageUrl = remember(fileKey) {
-                                getPublicFileUrl(fileKey) // Преобразуем fileKey в полный URL
-                            }
+                            val isVideo = fileKey.endsWith(".mp4") // или другие видеоформаты
+                            val mediaUrl = remember(fileKey) { getPublicFileUrl(fileKey) }
 
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(imageUrl)
-                                    .listener(
-                                        onError = { _, throwable ->
-                                            Log.e("IMAGE_LOAD", "Ошибка загрузки: ${throwable.throwable.message}")
-                                        }
-                                    )
-                                    .build(),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(100.dp)
-                                    .padding(4.dp)
-                                    .clickable {
-                                        expandedImageUrl = imageUrl
-                                    },
-                                contentScale = ContentScale.Crop
-                            )
+                            if (isVideo) {
+                                VideoThumbnail(
+                                    videoUrl = mediaUrl,
+                                    onClick = {
+                                        Log.d("ReportInfoDialog", "Opening video: $mediaUrl")
+                                        expandedVideoUrl = mediaUrl } // Новое состояние для видео
+                                )
+                            } else {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(mediaUrl)
+                                        .build(),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                        .clickable { expandedImageUrl = mediaUrl }
+                                )
+                            }
                         }
                     }
                 }
@@ -104,5 +105,11 @@ fun ReportInfoDialog(
             imageUrl = url,
             onDismiss = { expandedImageUrl = null }
         )
+    }
+
+    // Проверьте, что диалог добавлен в конце:
+    expandedVideoUrl?.let { url ->
+        Log.d("ReportInfoDialog", "Launching FullScreenVideoDialog")
+        FullScreenVideoDialog(url, onDismiss = { expandedVideoUrl = null })
     }
 }

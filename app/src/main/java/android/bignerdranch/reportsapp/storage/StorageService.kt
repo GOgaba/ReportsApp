@@ -6,6 +6,7 @@ import android.util.Log
 import com.amazonaws.services.s3.model.PutObjectRequest
 import java.io.File
 import android.content.Context
+import com.amazonaws.services.s3.model.CannedAccessControlList
 import com.amazonaws.services.s3.model.ObjectMetadata
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -33,7 +34,9 @@ class StorageService() {
                 remotePath,
                 inputStream,
                 metadata
-            )
+            ).apply {
+                withCannedAcl(CannedAccessControlList.PublicRead)
+            }
 
             S3Config.s3Client.putObject(request)
             "${S3Config.ENDPOINT}/${S3Config.BUCKET_NAME}/$remotePath"
