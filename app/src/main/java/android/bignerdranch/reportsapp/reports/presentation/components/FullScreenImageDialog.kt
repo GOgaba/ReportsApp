@@ -1,5 +1,6 @@
 package android.bignerdranch.reportsapp.reports.presentation.components
 
+import android.bignerdranch.reportsapp.storage.downloadMediaFile
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
@@ -9,8 +10,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -26,6 +31,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
@@ -39,6 +45,9 @@ fun FullScreenImageDialog(
     imageUrl: String,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    var showDownloadMenu by remember { mutableStateOf(false) }
+
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
     // Правильное преобразование dp в px с учетом плотности экрана
@@ -81,11 +90,11 @@ fun FullScreenImageDialog(
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
-            // Кнопка закрытия
+            // Кнопка закрытия (теперь в левом углу)
             IconButton(
                 onClick = onDismiss,
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.TopStart)
                     .padding(16.dp)
                     .zIndex(1f)
             ) {
@@ -94,6 +103,37 @@ fun FullScreenImageDialog(
                     contentDescription = "Закрыть",
                     tint = Color.White
                 )
+            }
+
+            // Кнопка меню (три точки в правом углу)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .zIndex(1f)
+            ) {
+                IconButton(
+                    onClick = { showDownloadMenu = true }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Меню",
+                        tint = Color.White
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showDownloadMenu,
+                    onDismissRequest = { showDownloadMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Скачать") },
+                        onClick = {
+                            downloadMediaFile(context, imageUrl)
+                            showDownloadMenu = false
+                        }
+                    )
+                }
             }
 
             // Контейнер для изображения с жестами

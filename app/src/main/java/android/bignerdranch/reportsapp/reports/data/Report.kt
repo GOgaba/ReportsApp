@@ -60,18 +60,41 @@ class ReportRepository(private val storageService: StorageService) {
             .documents
             .mapNotNull { document ->
                 try {
-                    document.toObject(Report::class.java)?.also {
-                        // Можно добавить логгирование для отладки
-                        Log.d("Firestore", "Successfully converted document ${document.id} to Report")
+                    // 1. Сначала получаем сырые данные из документа
+                    val data = document.data ?: run {
+                        Log.w("Firestore", "Document ${document.id} has no data")
+                        return@mapNotNull null
+                    }
+
+                    // 2. Явно извлекаем все необходимые поля
+                    Report(
+                        id = document.id,
+                        title = data["title"] as? String ?: "",
+                        description = data["description"] as? String ?: "",
+                        createdAt = (data["createdAt"] as? Long) ?: 0L,
+                        mediaUrls = (data["mediaUrls"] as? List<String>) ?: emptyList(),
+                        location = (data["location"] as? Map<String, Double>)?.let {
+                            Point(it["latitude"] ?: 0.0, it["longitude"] ?: 0.0)
+                        },
+                        isViewedByAdmin = data["isViewedByAdmin"] as? Boolean ?: false, // Явное извлечение
+                        userId = data["userId"] as? String ?: ""
+                    ).also {
+                        Log.d("Firestore",
+                            "Loaded report: ${it.id}\n" +
+                                    "Title: ${it.title}\n" +
+                                    "Viewed: ${it.isViewedByAdmin}\n" +
+                                    "Location: ${it.location?.latitude},${it.location?.longitude}"
+                        )
                     }
                 } catch (e: Exception) {
-                    Log.e("Firestore", "Error converting document ${document.id} to Report", e)
+                    Log.e("Firestore", "Error converting document ${document.id}", e)
                     null
                 }
             }.also {
                 Log.d("Firestore", "Total reports fetched: ${it.size}")
             }
     } catch (e: Exception) {
+        Log.e("Firestore", "Error fetching reports", e)
         throw e
     }
 

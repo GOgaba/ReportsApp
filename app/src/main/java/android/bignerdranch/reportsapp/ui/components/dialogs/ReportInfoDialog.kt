@@ -6,8 +6,11 @@ import android.bignerdranch.reportsapp.reports.data.Report
 import android.bignerdranch.reportsapp.reports.presentation.components.FullScreenImageDialog
 import android.bignerdranch.reportsapp.reports.presentation.components.FullScreenVideoDialog
 import android.bignerdranch.reportsapp.storage.S3Config
+import android.bignerdranch.reportsapp.storage.downloadMediaFile
 import android.util.Log
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -39,12 +42,14 @@ private fun getPublicFileUrl(fileKey: String): String {
     return "https://${S3Config.BUCKET_NAME}.hb.vkcs.cloud/$fileKey"
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @SuppressLint("SimpleDateFormat")
 @Composable
 fun ReportInfoDialog(
     report: Report,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     var expandedImageUrl by remember { mutableStateOf<String?>(null) }
     var expandedVideoUrl by remember { mutableStateOf<String?>(null) }
 
@@ -75,7 +80,8 @@ fun ReportInfoDialog(
                                     videoUrl = mediaUrl,
                                     onClick = {
                                         Log.d("ReportInfoDialog", "Opening video: $mediaUrl")
-                                        expandedVideoUrl = mediaUrl } // Новое состояние для видео
+                                        expandedVideoUrl = mediaUrl }, // Новое состояние для видео
+                                    onLongClick = { downloadMediaFile(context, mediaUrl) }
                                 )
                             } else {
                                 AsyncImage(
@@ -85,7 +91,12 @@ fun ReportInfoDialog(
                                     contentDescription = null,
                                     modifier = Modifier
                                         .size(100.dp)
-                                        .clickable { expandedImageUrl = mediaUrl }
+                                        .combinedClickable(
+                                            onClick = { expandedImageUrl = mediaUrl },
+                                            onLongClick = {
+                                                downloadMediaFile(context, mediaUrl)
+                                            }
+                                        )
                                 )
                             }
                         }

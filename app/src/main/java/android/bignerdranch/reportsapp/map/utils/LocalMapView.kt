@@ -91,6 +91,24 @@ fun MapWithMarkers(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var reportToDelete by remember { mutableStateOf<Report?>(null) }
 
+    // Обработчик просмотра отчета
+    val onReportViewed = { report: Report ->
+        coroutineScope.launch {
+            try {
+                // 1. Обновляем локальное состояние
+                val index = reports.indexOfFirst { it.id == report.id }
+                if (index != -1) {
+                    reports[index] = report.copy(isViewedByAdmin = true)
+                }
+
+                // 2. Сохраняем в репозитории
+                reportRepository.markReportAsViewed(report)
+            } catch (e: Exception) {
+                Log.e("MapWithMarkers", "Error marking report as viewed", e)
+            }
+        }
+    }
+
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -152,7 +170,7 @@ fun MapWithMarkers(
                         onClick = {
                             coroutineScope.launch {
                                 report.isViewedByAdmin = true  // <- ПРОСТО изменяем!
-                                reportRepository.markReportAsViewed(report)  // Автоматически сохраняем
+                                onReportViewed(report)
                             }
                             selectedReport = report
                         },
@@ -256,6 +274,7 @@ fun DynamicMarker(
                 )
         ) {
             if (report.isViewedByAdmin) {
+                Log.d("REPORT_STATUS", "Report is viewed by admin")
                 Icon(
                     painter = painterResource(R.drawable.ymk_default_point_viewed),
                     contentDescription = "Viewed marker",
@@ -265,6 +284,7 @@ fun DynamicMarker(
                         .align(Alignment.Center) // Выравниваем по центру Box
                 )
             } else {
+                Log.d("REPORT_STATUS", "Report doesn't viewed by admin")
                 Icon(
                     painter = painterResource(R.drawable.ymk_default_point),
                     contentDescription = "Marker",
