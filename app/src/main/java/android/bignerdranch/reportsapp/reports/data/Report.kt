@@ -53,6 +53,27 @@ class ReportRepository(private val storageService: StorageService) {
         }
     }
 
+    suspend fun deleteViewedReports(): Boolean {
+        return try {
+            // Получаем все просмотренные репорты
+            val viewedReports = db.collection("reports")
+                .whereEqualTo("isViewedByAdmin", true)
+                .get()
+                .await()
+
+            // Удаляем каждый репорт
+            viewedReports.forEach { document ->
+                val report = document.toObject(Report::class.java).copy(id = document.id)
+                deleteReport(report) // Используем существующий метод удаления
+            }
+
+            true
+        } catch (e: Exception) {
+            Log.e("ReportRepository", "Error deleting viewed reports", e)
+            false
+        }
+    }
+
     suspend fun getReports(): List<Report> = try {
         db.collection("reports")
             .get()

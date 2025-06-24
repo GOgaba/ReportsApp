@@ -8,15 +8,19 @@ import android.bignerdranch.reportsapp.reports.data.ReportRepository
 import android.bignerdranch.reportsapp.ui.components.dialogs.ReportInfoDialog
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -91,6 +95,9 @@ fun MapWithMarkers(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var reportToDelete by remember { mutableStateOf<Report?>(null) }
 
+    // Диалог подтверждения удаления всех просмотренных
+    var showDeleteAllViewedDialog by remember { mutableStateOf(false) }
+
     // Обработчик просмотра отчета
     val onReportViewed = { report: Report ->
         coroutineScope.launch {
@@ -105,6 +112,24 @@ fun MapWithMarkers(
                 reportRepository.markReportAsViewed(report)
             } catch (e: Exception) {
                 Log.e("MapWithMarkers", "Error marking report as viewed", e)
+            }
+        }
+    }
+
+    // Обработчик удаления всех просмотренных
+    val onDeleteAllViewed = {
+        coroutineScope.launch {
+            try {
+                val success = reportRepository.deleteViewedReports()
+                if (success) {
+                    // Обновляем локальный список
+                    reports.removeAll { it.isViewedByAdmin }
+                    Toast.makeText(context, "Просмотренные отчеты удалены", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "Ошибка удаления", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -148,6 +173,28 @@ fun MapWithMarkers(
         )
     }
 
+    // Диалог подтверждения удаления всех просмотренных
+    if (showDeleteAllViewedDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAllViewedDialog = false },
+            title = { Text("Удалить все просмотренные?") },
+            text = { Text("Будут удалены все отчеты, помеченные как просмотренные") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteAllViewed()
+                        showDeleteAllViewedDialog = false
+                    }
+                ) { Text("Удалить") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteAllViewedDialog = false }
+                ) { Text("Отмена") }
+            }
+        )
+    }
+
     Box(modifier = modifier) {
         // Передаём mapView в YandexMapView
         YandexMapView(
@@ -156,6 +203,24 @@ fun MapWithMarkers(
             reports = if (isAdmin) emptyList() else reports, // Админам не показываем стандартные маркеры
             isAdmin = isAdmin
         )
+
+        if (isAdmin) {
+            IconButton(
+                onClick = { showDeleteAllViewedDialog = true },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .background(Color.White.copy(alpha = 0.7f), CircleShape)
+                    .size(48.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_delete_all), // Добавьте свою иконку
+                    contentDescription = "Удалить все просмотренные",
+                    tint = Color.Red,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
 
         // Накладываем кастомные Compose-маркеры
         CompositionLocalProvider(LocalMapView provides mapView) {
