@@ -7,6 +7,7 @@ import android.bignerdranch.reportsapp.reports.data.ReportRepository
 import android.bignerdranch.reportsapp.reports.presentation.components.MediaGrid
 import android.bignerdranch.reportsapp.reports.presentation.components.MediaPicker
 import android.bignerdranch.reportsapp.storage.StorageService
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -46,6 +47,11 @@ fun CreateReportScreen(
 ) {
     val context = LocalContext.current
     val contentResolver = context.contentResolver
+
+    // Добавляем обработчик кнопки "назад"
+    BackHandler {
+        onBack() // Вызываем переданный колбэк
+    }
 
     // Получаем ViewModel с фабрикой
     val viewModel: ReportViewModel = viewModel(

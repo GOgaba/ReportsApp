@@ -1,11 +1,15 @@
 package android.bignerdranch.reportsapp.reports.data
 
+import android.bignerdranch.reportsapp.storage.StorageService
 import android.util.Log
 import com.yandex.mapkit.geometry.Point
 import java.util.UUID
 import com.google.firebase.Firebase
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import java.io.IOException
+import java.time.LocalDateTime
 
 data class Report(
     var id: String = UUID.randomUUID().toString(),
@@ -14,11 +18,40 @@ data class Report(
     val description: String = "",
     val mediaUrls: List<String> = emptyList(), // Ссылки на фото/видео
     val location: Point? = null, // Координаты с карты
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    var isViewedByAdmin: Boolean = false
 )
 
-class ReportRepository {
+class ReportRepository(private val storageService: StorageService) {
     private val db = FirebaseFirestore.getInstance()
+
+    suspend fun markReportAsViewed(report: Report) {
+        val updates = hashMapOf<String, Any>(
+            "isViewedByAdmin" to true
+        )
+        try {
+            db.collection("reports").document(report.id)
+                .update(updates)  // Полная перезапись (или .update() для частичных изменений)
+                .await()
+        } catch (e: Exception) {
+            // Обработка ошибок
+        }
+    }
+
+    suspend fun deleteReport(report: Report) {
+        try {
+            // 1. Удаляем медиафайлы из VK Cloud (если есть)
+            report.mediaUrls.forEach { url ->
+                storageService.deleteFile(url)  // Ваш метод для удаления файла
+            }
+
+            // 2. Удаляем документ из Firestore
+            db.collection("reports").document(report.id).delete().await()
+
+        } catch (e: Exception) {
+            throw IOException("Failed to delete report", e)
+        }
+    }
 
     suspend fun getReports(): List<Report> = try {
         db.collection("reports")

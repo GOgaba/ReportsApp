@@ -7,6 +7,7 @@ import com.amazonaws.services.s3.model.PutObjectRequest
 import java.io.File
 import android.content.Context
 import com.amazonaws.services.s3.model.CannedAccessControlList
+import com.amazonaws.services.s3.model.DeleteObjectRequest
 import com.amazonaws.services.s3.model.ObjectMetadata
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -88,5 +89,22 @@ class StorageService() {
             Log.d("TESTRETURN", "${filesPath}")
         }
 
+    }
+
+    suspend fun deleteFile(remotePath: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            Log.d("TAG", "Попытка удаления файла: $remotePath")
+
+            // Удаляем объект из бакета
+            S3Config.s3Client.deleteObject(
+                DeleteObjectRequest(S3Config.BUCKET_NAME, remotePath)
+            )
+
+            Log.d("TAG", "Файл успешно удален: $remotePath")
+            true
+        } catch (e: Exception) {
+            Log.e("TAG", "Ошибка при удалении файла $remotePath", e)
+            false
+        }
     }
 }

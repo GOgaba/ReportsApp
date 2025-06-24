@@ -31,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -145,7 +146,7 @@ class MainActivity : ComponentActivity() {
             ReportsAppTheme {
                 var showReportScreen by remember { mutableStateOf(false) }
                 var currentLocation by remember { mutableStateOf<Point?>(null) }
-                var reports by remember { mutableStateOf<List<Report>>(emptyList()) }
+                val reports = remember { mutableStateListOf<Report>() }
 
                 // Эффект для получения локации
                 LaunchedEffect(Unit) {
@@ -158,7 +159,10 @@ class MainActivity : ComponentActivity() {
 
                     // Загрузка отчетов
                     Log.d("LE_CHECK", "Отчёты прогружаются...")
-                    reports = appContainer.reportRepository.getReports()
+                    // Загрузка отчетов
+                    val loadedReports = appContainer.reportRepository.getReports()
+                    reports.clear() // Очищаем перед добавлением новых
+                    reports.addAll(loadedReports) // Добавляем новые отчеты
                     Log.d("LE_CHECK", "Количество отчётов: ${reports.size}...")
 
                 }
@@ -209,7 +213,7 @@ class MainActivity : ComponentActivity() {
                             else -> {
                                 Log.d("LOCATION", "current location ${currentLocation?.latitude}, ${currentLocation?.longitude}")
                                 Log.d("REPORTS", "${reports}")
-                                MapWithMarkers(currentLocation, reports, userManager.isAdmin)
+                                MapWithMarkers(appContainer.reportRepository, currentLocation, reports, userManager.isAdmin)
                             }
                         }
                     }

@@ -24,7 +24,7 @@ class AppContainer(private val context: Context) {
 
     // Repository
     val reportRepository by lazy {
-        ReportRepository().also {
+        ReportRepository(storageService).also {
             Log.d("AppContainer", "ReportRepository initialized")
         }
     }

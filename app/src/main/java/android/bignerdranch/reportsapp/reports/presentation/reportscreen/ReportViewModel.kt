@@ -57,8 +57,6 @@ class ReportViewModel(
         }
     }
 
-
-
     fun addMedia(uris: List<Uri>) {
         mediaUris.addAll(uris)
     }
